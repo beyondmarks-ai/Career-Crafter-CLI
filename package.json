@@ -1,0 +1,10 @@
+{
+  "name": "@careercraft/cli",
+  "version": "0.1.0",
+  "description": "Create and email a professional resume from your terminal.",
+  "type": "module",
+  "bin": { "careercraft": "./dist/index.mjs" },
+  "files": ["dist"],
+  "scripts": { "build": "tsdown src/index.ts --format esm --dts", "typecheck": "tsc --noEmit", "prepublishOnly": "npm run build" },
+  "devDependencies": { "@types/node": "^22.15.0", "tsdown": "^0.20.0", "typescript": "^5.8.3" }
+}
