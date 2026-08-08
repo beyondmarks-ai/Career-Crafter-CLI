@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 import { stdin as input, stdout as output } from "node:process";
 import { createInterface } from "node:readline/promises";
 
@@ -31,7 +31,7 @@ async function main() {
 		console.log("Usage: npx @careercraft/cli create");
 		return;
 	}
-	console.log("\nCareerCraft � create a professional resume\n");
+console.log("\\nCareerCraft - create a professional resume\\n");
 	const resume = {
 		name: await ask("Full name", true),
 		email: await ask("Email address", true),
