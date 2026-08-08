@@ -2,7 +2,7 @@
 import { stdin as input, stdout as output } from "node:process";
 import { createInterface } from "node:readline/promises";
 
-const defaultServer = process.env.CAREERCRAFT_API_URL ?? "http://localhost:3000";
+const defaultServer = process.env.CAREERCRAFT_API_URL ?? "https://careercraft-api.gentlesmoke-3e37c905.centralindia.azurecontainerapps.io";
 const rl = createInterface({ input, output });
 const ask = async (label: string, required = false) => {
 	let answer = "";
