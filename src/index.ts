@@ -2,6 +2,7 @@
 import { stdin as input, stdout as output } from "node:process";
 import { createInterface } from "node:readline/promises";
 
+// GitHub repository selection is added by the server endpoint.
 const defaultServer = process.env.CAREERCRAFT_API_URL ?? "https://careercraft-api.gentlesmoke-3e37c905.centralindia.azurecontainerapps.io";
 const rl = createInterface({ input, output });
 const ask = async (label: string, required = false) => {
@@ -37,6 +38,7 @@ const chooseMany = async (label: string, options: string[]) => {
   output.write(`Please use numbers from 1 to ${options.length}, separated by commas.\n`);
  }
 };
+async function selectGithubProjects(username: string) { if (!username) return []; const repos = await request("/api/careercraft/github/repos?username=" + encodeURIComponent(username)); if (!Array.isArray(repos) || repos.length === 0) { output.write("No public repositories found.\\n"); return []; } output.write("\\nPublic GitHub repositories:\\n"); repos.forEach((repo: any, index: number) => output.write("  " + (index + 1) + ". " + repo.name + " - " + (repo.language ?? "various") + "\\n")); const raw = (await rl.question("Select project numbers (comma separated), or press Enter to skip: ")).trim(); if (!raw) return []; return raw.split(",").map(Number).filter((value) => Number.isInteger(value) && value >= 1 && value <= repos.length).map((value) => repos[value - 1]); }
 async function request(path: string, init?: RequestInit) {
 	const response = await fetch(`${defaultServer}${path}`, {
 		...init,
@@ -63,10 +65,12 @@ console.log("\nCareerCraft - create a professional resume\n");
 		skills: await chooseMany("Select your strongest skills (you can add your own)", ["Leadership", "Communication", "Problem solving", "Project management", "JavaScript / TypeScript", "Python", "Data analysis", "Customer service"]),
 		experience: lines(await ask("Employers or experience entries (comma separated)")),
 		education: lines(await ask("Education entries (comma separated)")),
-		projects: lines(await ask("Projects (comma separated)")),
+		projects: [] as Array<{ name: string; url: string; description: string; technologies: string[] }>,
 		certifications: lines(await ask("Certifications (comma separated)")),
 	};
-	const verification = await request("/api/careercraft/verifications", {
+	const githubUsername = await ask("Public GitHub username (optional)");
+	resume.projects = await selectGithubProjects(githubUsername);
+const verification = await request("/api/careercraft/verifications", {
 		method: "POST",
 		body: JSON.stringify({ email: resume.email }),
 	});
