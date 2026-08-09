@@ -38,6 +38,8 @@ const chooseMany = async (label: string, options: string[]) => {
   output.write(`Please use numbers from 1 to ${options.length}, separated by commas.\n`);
  }
 };
+async function collectExperience() { const count = Number((await rl.question("How many experience entries? (0 if none): ")).trim()) || 0; const entries: Array<{ company: string; position: string; location: string; period: string; description: string; bullets: string[] }> = []; for (let i = 0; i < count; i++) { output.write("\\nExperience " + (i + 1) + "\\n"); entries.push({ company: await ask("Company", true), position: await ask("Job title", true), location: await ask("Location"), period: await ask("Dates (for example 2022 - Present)"), description: await ask("What did you work on?"), bullets: lines(await ask("Achievements (comma separated)")) }); } return entries; }
+async function collectEducation() { const count = Number((await rl.question("How many education entries? (0 if none): ")).trim()) || 0; const entries: Array<{ school: string; degree: string; area: string; location: string; period: string; description: string }> = []; for (let i = 0; i < count; i++) { output.write("\\nEducation " + (i + 1) + "\\n"); entries.push({ school: await ask("School", true), degree: await ask("Degree"), area: await ask("Field of study"), location: await ask("Location"), period: await ask("Dates"), description: await ask("Academic achievement (optional)") }); } return entries; }
 async function selectGithubProjects(username: string) { if (!username) return []; const repos = await request("/api/careercraft/github/repos?username=" + encodeURIComponent(username)); if (!Array.isArray(repos) || repos.length === 0) { output.write("No public repositories found.\\n"); return []; } output.write("\\nPublic GitHub repositories:\\n"); repos.forEach((repo: any, index: number) => output.write("  " + (index + 1) + ". " + repo.name + " - " + (repo.language ?? "various") + "\\n")); const raw = (await rl.question("Select project numbers (comma separated), or press Enter to skip: ")).trim(); if (!raw) return []; return raw.split(",").map(Number).filter((value) => Number.isInteger(value) && value >= 1 && value <= repos.length).map((value) => repos[value - 1]); }
 async function request(path: string, init?: RequestInit) {
 	const response = await fetch(`${defaultServer}${path}`, {
@@ -63,8 +65,8 @@ console.log("\nCareerCraft - create a professional resume\n");
 		website: await ask("Website or LinkedIn URL"),
 		summary: await choose("What kind of professional bio should AI write?", ["Concise and professional", "Achievement-focused", "Career changer", "Student / entry-level", "I will write my own bio"]).then(async (value) => value.startsWith("I will") ? ask("Professional summary", true) : `Write a ${value.toLowerCase()} professional summary.`),
 		skills: await chooseMany("Select your strongest skills (you can add your own)", ["Leadership", "Communication", "Problem solving", "Project management", "JavaScript / TypeScript", "Python", "Data analysis", "Customer service"]),
-		experience: lines(await ask("Employers or experience entries (comma separated)")),
-		education: lines(await ask("Education entries (comma separated)")),
+		experience: await collectExperience(),
+		education: await collectEducation(),
 		projects: [] as Array<{ name: string; url: string; description: string; technologies: string[] }>,
 		certifications: lines(await ask("Certifications (comma separated)")),
 	};
