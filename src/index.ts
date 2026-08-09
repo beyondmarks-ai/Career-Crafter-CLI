@@ -20,8 +20,8 @@ const lines = (value: string) =>
 		.map((item) => item.trim())
 		.filter(Boolean);
 const fallbackChoose = async (label: string, options: string[]) => {
-  output.write("\\n" + label + "\\n");
-  options.forEach((option, index) => output.write("  " + (index + 1) + ". " + option + "\\n"));
+  output.write("\n" + label + "\n");
+  options.forEach((option, index) => output.write("  " + (index + 1) + ". " + option + "\n"));
   const value = Number((await rl.question("Choose a number: ")).trim());
   return options[Number.isInteger(value) && value >= 1 && value <= options.length ? value - 1 : 0];
 };
@@ -31,8 +31,8 @@ const choose = async (label: string, options: string[]) => {
   const stream = input as typeof input & { setRawMode?: (mode: boolean) => void };
   return new Promise<string>((resolve) => {
     let cursor = 0;
-    const render = () => { output.write("\\u001b[2J\\u001b[H" + label + "\\n\\n" + options.map((option, index) => (index === cursor ? "❯ " : "  ") + option).join("\\n") + "\\n\\nUse Up/Down and Enter."); };
-    const finish = (value: string) => { input.off("keypress", onKey); stream.setRawMode?.(false); output.write("\\n"); resolve(value); };
+    const render = () => { output.write("\u001b[2J\u001b[H" + label + "\n\n" + options.map((option, index) => (index === cursor ? "❯ " : "  ") + option).join("\n") + "\n\nUse Up/Down and Enter."); };
+    const finish = (value: string) => { input.off("keypress", onKey); stream.setRawMode?.(false); output.write("\n"); resolve(value); };
     const onKey = (_: string, key: { name?: string }) => { if (key.name === "up") cursor = (cursor + options.length - 1) % options.length; else if (key.name === "down") cursor = (cursor + 1) % options.length; else if (key.name === "return" || key.name === "escape") return finish(options[cursor]); else return; render(); };
     input.on("keypress", onKey); stream.setRawMode?.(true); render();
   });
@@ -43,8 +43,8 @@ const chooseMany = async (label: string, options: string[]) => {
   const stream = input as typeof input & { setRawMode?: (mode: boolean) => void };
   return new Promise<string[]>((resolve) => {
     let cursor = 0; const selected = new Set<number>();
-    const render = () => { output.write("\\u001b[2J\\u001b[H" + label + "\\n\\n" + options.map((option, index) => (index === cursor ? "❯ " : "  ") + (selected.has(index) ? "[x] " : "[ ] ") + option).join("\\n") + "\\n\\nUse Up/Down, Space, Enter."); };
-    const finish = () => { input.off("keypress", onKey); stream.setRawMode?.(false); output.write("\\n"); resolve([...selected].sort((a, b) => a - b).map((index) => options[index])); };
+    const render = () => { output.write("\u001b[2J\u001b[H" + label + "\n\n" + options.map((option, index) => (index === cursor ? "❯ " : "  ") + (selected.has(index) ? "[x] " : "[ ] ") + option).join("\n") + "\n\nUse Up/Down, Space, Enter."); };
+    const finish = () => { input.off("keypress", onKey); stream.setRawMode?.(false); output.write("\n"); resolve([...selected].sort((a, b) => a - b).map((index) => options[index])); };
     const onKey = (_: string, key: { name?: string }) => { if (key.name === "up") cursor = (cursor + options.length - 1) % options.length; else if (key.name === "down") cursor = (cursor + 1) % options.length; else if (key.name === "space") selected.has(cursor) ? selected.delete(cursor) : selected.add(cursor); else if (key.name === "return") return finish(); else return; render(); };
     input.on("keypress", onKey); stream.setRawMode?.(true); render();
   });
