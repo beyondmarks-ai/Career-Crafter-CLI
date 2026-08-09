@@ -17,6 +17,26 @@ const lines = (value: string) =>
 		.split(",")
 		.map((item) => item.trim())
 		.filter(Boolean);
+const choose = async (label: string, options: string[]) => {
+ output.write(`\n${label}\n`);
+ options.forEach((option, index) => output.write(`  ${index + 1}. ${option}\n`));
+ while (true) {
+  const value = Number((await rl.question("Choose a number: ")).trim());
+  if (Number.isInteger(value) && value >= 1 && value <= options.length) return options[value - 1];
+  output.write(`Please choose a number from 1 to ${options.length}.\n`);
+ }
+};
+const chooseMany = async (label: string, options: string[]) => {
+ output.write(`\n${label}\n`);
+ options.forEach((option, index) => output.write(`  ${index + 1}. ${option}\n`));
+ while (true) {
+  const values = (await rl.question("Choose one or more numbers (comma separated), or press Enter to type your own: ")).trim();
+  if (!values) return lines(await ask("Enter your own values (comma separated)"));
+  const selected = values.split(",").map(Number);
+  if (selected.every((value) => Number.isInteger(value) && value >= 1 && value <= options.length)) return selected.map((value) => options[value - 1]);
+  output.write(`Please use numbers from 1 to ${options.length}, separated by commas.\n`);
+ }
+};
 async function request(path: string, init?: RequestInit) {
 	const response = await fetch(`${defaultServer}${path}`, {
 		...init,
@@ -35,12 +55,12 @@ console.log("\nCareerCraft - create a professional resume\n");
 	const resume = {
 		name: await ask("Full name", true),
 		email: await ask("Email address", true),
-		headline: await ask("Target role / headline"),
+		headline: await choose("What role are you targeting?", ["Software Engineer", "Product Manager", "Data Analyst", "Marketing Specialist", "Designer", "Student / Entry level", "Other (type your own)"]).then(async (value) => value.startsWith("Other") ? ask("Target role / headline", true) : value),
 		phone: await ask("Phone number"),
 		location: await ask("Location"),
 		website: await ask("Website or LinkedIn URL"),
-		summary: await ask("Professional summary"),
-		skills: lines(await ask("Skills (comma separated)")),
+		summary: await choose("What kind of professional bio should AI write?", ["Concise and professional", "Achievement-focused", "Career changer", "Student / entry-level", "I will write my own bio"]).then(async (value) => value.startsWith("I will") ? ask("Professional summary", true) : `Write a ${value.toLowerCase()} professional summary.`),
+		skills: await chooseMany("Select your strongest skills (you can add your own)", ["Leadership", "Communication", "Problem solving", "Project management", "JavaScript / TypeScript", "Python", "Data analysis", "Customer service"]),
 		experience: lines(await ask("Employers or experience entries (comma separated)")),
 		education: lines(await ask("Education entries (comma separated)")),
 		projects: lines(await ask("Projects (comma separated)")),
