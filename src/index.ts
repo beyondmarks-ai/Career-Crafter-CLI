@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { stdin as input, stdout as output } from "node:process";
+import { emitKeypressEvents } from "node:readline";
 import { createInterface } from "node:readline/promises";
 
 // GitHub repository selection is added by the server endpoint.
@@ -18,25 +19,35 @@ const lines = (value: string) =>
 		.split(",")
 		.map((item) => item.trim())
 		.filter(Boolean);
-const choose = async (label: string, options: string[]) => {
- output.write(`\n${label}\n`);
- options.forEach((option, index) => output.write(`  ${index + 1}. ${option}\n`));
- while (true) {
+const fallbackChoose = async (label: string, options: string[]) => {
+  output.write("\\n" + label + "\\n");
+  options.forEach((option, index) => output.write("  " + (index + 1) + ". " + option + "\\n"));
   const value = Number((await rl.question("Choose a number: ")).trim());
-  if (Number.isInteger(value) && value >= 1 && value <= options.length) return options[value - 1];
-  output.write(`Please choose a number from 1 to ${options.length}.\n`);
- }
+  return options[Number.isInteger(value) && value >= 1 && value <= options.length ? value - 1 : 0];
+};
+const choose = async (label: string, options: string[]) => {
+  if (!input.isTTY || !output.isTTY) return fallbackChoose(label, options);
+  emitKeypressEvents(input);
+  const stream = input as typeof input & { setRawMode?: (mode: boolean) => void };
+  return new Promise<string>((resolve) => {
+    let cursor = 0;
+    const render = () => { output.write("\\u001b[2J\\u001b[H" + label + "\\n\\n" + options.map((option, index) => (index === cursor ? "❯ " : "  ") + option).join("\\n") + "\\n\\nUse Up/Down and Enter."); };
+    const finish = (value: string) => { input.off("keypress", onKey); stream.setRawMode?.(false); output.write("\\n"); resolve(value); };
+    const onKey = (_: string, key: { name?: string }) => { if (key.name === "up") cursor = (cursor + options.length - 1) % options.length; else if (key.name === "down") cursor = (cursor + 1) % options.length; else if (key.name === "return" || key.name === "escape") return finish(options[cursor]); else return; render(); };
+    input.on("keypress", onKey); stream.setRawMode?.(true); render();
+  });
 };
 const chooseMany = async (label: string, options: string[]) => {
- output.write(`\n${label}\n`);
- options.forEach((option, index) => output.write(`  ${index + 1}. ${option}\n`));
- while (true) {
-  const values = (await rl.question("Choose one or more numbers (comma separated), or press Enter to type your own: ")).trim();
-  if (!values) return lines(await ask("Enter your own values (comma separated)"));
-  const selected = values.split(",").map(Number);
-  if (selected.every((value) => Number.isInteger(value) && value >= 1 && value <= options.length)) return selected.map((value) => options[value - 1]);
-  output.write(`Please use numbers from 1 to ${options.length}, separated by commas.\n`);
- }
+  if (!input.isTTY || !output.isTTY) return lines(await ask(label + " (comma separated)"));
+  emitKeypressEvents(input);
+  const stream = input as typeof input & { setRawMode?: (mode: boolean) => void };
+  return new Promise<string[]>((resolve) => {
+    let cursor = 0; const selected = new Set<number>();
+    const render = () => { output.write("\\u001b[2J\\u001b[H" + label + "\\n\\n" + options.map((option, index) => (index === cursor ? "❯ " : "  ") + (selected.has(index) ? "[x] " : "[ ] ") + option).join("\\n") + "\\n\\nUse Up/Down, Space, Enter."); };
+    const finish = () => { input.off("keypress", onKey); stream.setRawMode?.(false); output.write("\\n"); resolve([...selected].sort((a, b) => a - b).map((index) => options[index])); };
+    const onKey = (_: string, key: { name?: string }) => { if (key.name === "up") cursor = (cursor + options.length - 1) % options.length; else if (key.name === "down") cursor = (cursor + 1) % options.length; else if (key.name === "space") selected.has(cursor) ? selected.delete(cursor) : selected.add(cursor); else if (key.name === "return") return finish(); else return; render(); };
+    input.on("keypress", onKey); stream.setRawMode?.(true); render();
+  });
 };
 async function collectExperience() { const count = Number((await rl.question("How many experience entries? (0 if none): ")).trim()) || 0; const entries: Array<{ company: string; position: string; location: string; period: string; description: string; bullets: string[] }> = []; for (let i = 0; i < count; i++) { output.write("\nExperience " + (i + 1) + "\n"); entries.push({ company: await ask("Company", true), position: await ask("Job title", true), location: await ask("Location"), period: await ask("Dates (for example 2022 - Present)"), description: await ask("What did you work on?"), bullets: lines(await ask("Achievements (comma separated)")) }); } return entries; }
 async function collectEducation() { const count = Number((await rl.question("How many education entries? (0 if none): ")).trim()) || 0; const entries: Array<{ school: string; degree: string; area: string; location: string; period: string; description: string }> = []; for (let i = 0; i < count; i++) { output.write("\nEducation " + (i + 1) + "\n"); entries.push({ school: await ask("School", true), degree: await ask("Degree"), area: await ask("Field of study"), location: await ask("Location"), period: await ask("Dates"), description: await ask("Academic achievement (optional)") }); } return entries; }
